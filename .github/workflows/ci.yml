@@ -5,7 +5,7 @@ on:
       - '*'           # Push events to every tag not containing /
   workflow_dispatch:
 
-name: Publish
+name: CI
 
 jobs:
   publish:
