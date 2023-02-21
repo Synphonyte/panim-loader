@@ -4,9 +4,9 @@ use nom::error::Error;
 use nom::multi::{count, many_till};
 use nom::number::streaming::{le_f32, le_u32, le_u8};
 use nom::sequence::{terminated, tuple};
+use nom::HexDisplay;
 use nom::{Finish, IResult};
 use std::str::from_utf8;
-use nom::HexDisplay;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PropsAnimation<'a> {
@@ -39,7 +39,7 @@ pub fn props_animation(input: &[u8]) -> Result<PropsAnimation, Error<String>> {
     )(input)
     .finish()
     .map(|(_, props_animation)| props_animation)
-    .map_err(|e| Error::new( e.input.to_hex(2), e.code))
+    .map_err(|e| Error::new(e.input.to_hex(2), e.code))
 }
 
 pub fn animation(input: &[u8]) -> IResult<&[u8], Animation> {
