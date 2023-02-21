@@ -3,6 +3,14 @@ name = "panim-loader"
 version = "0.1.0"
 edition = "2021"
 authors = ["Marc-Stefan Cassola"]
+categories = ["format-parsers", "format-writers", "media", "multimedia", "animation"]
+description = "Loader for the PANIM format for custom properties in Blender"
+exclude = ["assets/", ".github/", "crates/", "examples/", "tests/"]
+keywords = ["panim", "loader", "animation", "blender"]
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/Synphonyte/panim-loader"
+documentation = "https://docs.rs/panim-loader"
 
 [dependencies]
 nom = "7.1.1"
