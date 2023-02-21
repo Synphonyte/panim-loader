@@ -18,5 +18,6 @@ The primary use case for this file type is to export more animation data on top 
 ```rust
 use panim_loader::PropertiesAnimation;
 
-let anim = PropertiesAnimation::from_file("assets/example.panim").unwrap()
+let anim = PropertiesAnimation::from_file("assets/example.panim").unwrap();
+let value = anim.get_animation_value_at_time(anim.animations[0], 10.0);
 ```

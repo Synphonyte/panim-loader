@@ -45,6 +45,45 @@ impl PropertiesAnimation {
         let bytes = std::fs::read(path)?;
         Self::from_bytes(&bytes)
     }
+
+    /// Returns the value of the animation at the given time (in seconds).
+    pub fn get_animation_value_at_time(&self, animation: &Animation, elapsed_time: f32) -> f32 {
+        animation.get_interpolated_value_at_frame(self.fps * elapsed_time)
+    }
+}
+
+impl Animation {
+    /// Returns the value of the animation at the given frame.
+    /// If a frame is before the start of the animation, the first value is returned.
+    /// If a frame is after the end of the animation, the last value is returned.
+    pub fn get_value_at_exact_frame(&self, frame: u32) -> f32 {
+        if frame <= self.frame_start {
+            return self.frame_values[0];
+        } else if frame >= self.frame_end {
+            return self.frame_values[self.frame_values.len() - 1];
+        }
+
+        let index = (frame - self.frame_start) as usize;
+        self.frame_values[index]
+    }
+
+    /// Returns the value of the animation at the given frame.
+    /// If a frame is before the start of the animation, the first value is returned.
+    /// If a frame is after the end of the animation, the last value is returned.
+    /// If a frame is between two frames (i.e. is not an integer), the value is linearly interpolated.
+    pub fn get_interpolated_value_at_frame(&self, frame: f32) -> f32 {
+        let lower_frame = frame.floor();
+
+        let fraction = frame - lower_frame;
+
+        let lower_frame = lower_frame as u32;
+        let upper_frame = lower_frame + 1;
+
+        let lower_value = self.get_value_at_exact_frame(lower_frame);
+        let upper_value = self.get_value_at_exact_frame(upper_frame);
+
+        lower_value + (upper_value - lower_value) * fraction
+    }
 }
 
 impl<'a> From<parser::PropsAnimation<'a>> for PropertiesAnimation {
@@ -94,6 +133,20 @@ mod tests {
                     ]
                 }],
             }
+        );
+
+        let animation = &result.animations[0];
+        assert_eq!(animation.get_value_at_exact_frame(500), 0.0);
+        assert_eq!(animation.get_value_at_exact_frame(600), 1.0);
+        assert_eq!(animation.get_value_at_exact_frame(553), 0.5);
+        assert_eq!(
+            animation.get_interpolated_value_at_frame(549.5),
+            0.04296834 * 0.5
+        );
+
+        assert_eq!(
+            result.get_animation_value_at_time(animation, 27.5),
+            0.04296834
         );
     }
 }
