@@ -17,8 +17,14 @@ jobs:
         with:
             toolchain: stable
             override: true
-      - run: cargo fmt --check
-      - run: cargo test
+      - name: Check formatting
+        run: cargo fmt --check
+      - name: Check if the README is up to date.
+        run: |
+          cargo install cargo-rdme
+          cargo rdme --check
+      - name: Run tests
+        run: cargo test
       - uses: katyo/publish-crates@v2
         with:
             registry-token: ${{ secrets.CRATES_TOKEN }}

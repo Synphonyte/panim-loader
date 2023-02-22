@@ -5,6 +5,7 @@
 [![MIT/Apache 2.0](https://img.shields.io/badge/license-MIT%2FApache-blue.svg)](https://github.com/synphonyte/panim-loader#license)
 [![Build Status](https://github.com/synphonyte/panim-loader/actions/workflows/ci.yml/badge.svg)](https://github.com/synphonyte/panim-loader/actions/workflows/ci.yml)
 
+<!-- cargo-rdme start -->
 
 This is a loader for the PANIM format, which is a simple animation format for custom properties in Blender.
 This is meant to be used in conjunction with the [PANIM Blender Exporter](https://github.com/Synphonyte/blender-panim-exporter).
@@ -18,6 +19,8 @@ The primary use case for this file type is to export more animation data on top 
 ```rust
 use panim_loader::PropertiesAnimation;
 
-let anim = PropertiesAnimation::from_file("assets/example.panim").unwrap();
-let value = anim.get_animation_value_at_time(anim.animations[0], 10.0);
+let anims = PropertiesAnimation::from_file("assets/single_anim.panim").unwrap();
+let value = anims.get_animation_value_at_time(&anims.animations[0], 10.0);
 ```
+
+<!-- cargo-rdme end -->
