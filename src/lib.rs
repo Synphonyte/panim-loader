@@ -5,7 +5,7 @@
 //!
 //! The primary use case for this file type is to export more animation data on top of what can be stored in GLTF files.
 //!
-//! ## Usage
+//! # Usage
 //!
 //! ```
 //! use panim_loader::PropertiesAnimation;
