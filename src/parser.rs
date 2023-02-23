@@ -1,4 +1,4 @@
-use nom::bytes::streaming::take_till;
+use nom::bytes::streaming::{take, take_till};
 use nom::combinator::{eof, map, map_res};
 use nom::error::Error;
 use nom::multi::{count, many_till};
@@ -10,8 +10,18 @@ use std::str::from_utf8;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PropsAnimation<'a> {
+    pub version: u32,
     pub fps: f32,
     pub animations: Vec<Animation<'a>>,
+}
+
+impl PropsAnimation<'_> {
+    pub fn semver(&self) -> (u16, u16, u16) {
+        let major = (self.version >> 20) as u16;
+        let minor = ((self.version >> 10) & 0x3FF) as u16;
+        let patch = (self.version & 0x3FF) as u16;
+        (major, minor, patch)
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -34,8 +44,12 @@ pub struct AnimationValues(pub Vec<f32>);
 
 pub fn props_animation(input: &[u8]) -> Result<PropsAnimation, Error<String>> {
     map(
-        tuple((le_f32, many_till(animation, eof))),
-        |(fps, (animations, _))| PropsAnimation { fps, animations },
+        tuple((le_u32, le_f32, many_till(animation, eof))),
+        |(version, fps, (animations, _))| PropsAnimation {
+            version,
+            fps,
+            animations,
+        },
     )(input)
     .finish()
     .map(|(_, props_animation)| props_animation)
@@ -51,8 +65,15 @@ pub fn animation(input: &[u8]) -> IResult<&[u8], Animation> {
 
 pub fn animation_header(input: &[u8]) -> IResult<&[u8], AnimationHeader> {
     map(
-        tuple((zero_term_str, zero_term_str, le_u32, le_u32, le_u8)),
-        |(object_name, property_name, frame_start, frame_end, typ)| AnimationHeader {
+        tuple((
+            zero_term_str,
+            zero_term_str,
+            le_u32,
+            le_u32,
+            le_u8,
+            take(32_usize),
+        )),
+        |(object_name, property_name, frame_start, frame_end, typ, _)| AnimationHeader {
             object_name,
             property_name,
             frame_start,
@@ -78,26 +99,44 @@ pub fn zero_term_str(input: &[u8]) -> IResult<&[u8], &str> {
 
 #[allow(non_upper_case_globals)]
 #[cfg(test)]
-mod tests {
-    use super::*;
-
+pub(crate) mod tests {
     const single_anim: &[u8] = include_bytes!("../assets/single_anim.panim");
 
     macro_rules! anim_values {
         () => {
-            AnimationValues(vec![
-                0.0, 0.04296834, 0.1562492, 0.31640565, 0.5, 0.6835944, 0.8437508, 0.95703185, 1.0,
+            crate::parser::AnimationValues(vec![
+                0.0,
+                0.007250005,
+                0.028000012,
+                0.060750026,
+                0.10400003,
+                0.15625003,
+                0.21600005,
+                0.28175005,
+                0.352,
+                0.42525005,
+                0.5,
+                0.57475,
+                0.648,
+                0.71825,
+                0.7839999,
+                0.84374994,
+                0.896,
+                0.9392501,
+                0.972,
+                0.99275005,
+                1.0,
             ])
         };
     }
 
     macro_rules! anim_header {
         () => {
-            AnimationHeader {
-                object_name: "Orange Side Streaks",
+            crate::parser::AnimationHeader {
+                object_name: "Cube",
                 property_name: "opacity",
-                frame_start: 549,
-                frame_end: 557,
+                frame_start: 80,
+                frame_end: 100,
                 typ: 0,
             }
         };
@@ -105,7 +144,7 @@ mod tests {
 
     macro_rules! anim {
         () => {
-            Animation {
+            crate::parser::Animation {
                 header: anim_header!(),
                 values: anim_values!(),
             }
@@ -114,47 +153,60 @@ mod tests {
 
     macro_rules! props_anim {
         () => {
-            PropsAnimation {
-                fps: 20.0,
+            crate::parser::PropsAnimation {
+                version: 2048,
+                fps: 24.0,
                 animations: vec![anim!()],
             }
         };
     }
 
+    pub(crate) use anim;
+    pub(crate) use anim_header;
+    pub(crate) use anim_values;
+    pub(crate) use props_anim;
+
     #[test]
     fn test_props_animation() {
-        let output = props_animation(single_anim).unwrap();
+        let output = crate::parser::props_animation(single_anim).unwrap();
         assert_eq!(output, props_anim!());
     }
 
     #[test]
     fn test_animation() {
-        let input = &single_anim[4..];
-        let (remainder, output) = animation(input).unwrap();
+        let input = &single_anim[8..];
+        let (remainder, output) = crate::parser::animation(input).unwrap();
         assert_eq!(output, anim!());
         assert_eq!(remainder, &[]);
     }
 
     #[test]
     fn test_animation_header() {
-        let input = &single_anim[4..41];
-        let (remainder, output) = animation_header(input).unwrap();
+        let input = &single_anim[8..62];
+        let (remainder, output) = crate::parser::animation_header(input).unwrap();
         assert_eq!(output, anim_header!());
         assert_eq!(remainder, &[]);
     }
 
     #[test]
     fn test_animation_values() {
-        let input = &single_anim[41..];
-        let (remainder, output) = animation_values(&anim_header!(), input).unwrap();
+        let input = &single_anim[62..];
+        let (remainder, output) = crate::parser::animation_values(&anim_header!(), input).unwrap();
         assert_eq!(output, anim_values!());
         assert_eq!(remainder, &[]);
     }
 
     #[test]
+    fn test_semver() {
+        let input = props_anim!();
+        let output = input.semver();
+        assert_eq!(output, (0, 2, 0));
+    }
+
+    #[test]
     fn test_zero_term_str() {
         let input = b"hello\0world\0";
-        let (remainder, output) = zero_term_str(input).unwrap();
+        let (remainder, output) = crate::parser::zero_term_str(input).unwrap();
         assert_eq!(output, "hello");
         assert_eq!(remainder, b"world\0");
     }

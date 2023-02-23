@@ -20,6 +20,9 @@ mod parser;
 /// A Properties Animation file containing all the animations for all exported properties of all objects in the scene.
 #[derive(Clone, Debug, PartialEq)]
 pub struct PropertiesAnimation {
+    /// Version of the file format as a tuple of semver (major, minor, patch).
+    pub version: (u16, u16, u16),
+
     /// The number of frames per second.
     pub fps: f32,
 
@@ -105,6 +108,7 @@ impl Animation {
 impl<'a> From<parser::PropsAnimation<'a>> for PropertiesAnimation {
     fn from(props_animation: parser::PropsAnimation<'a>) -> Self {
         PropertiesAnimation {
+            version: props_animation.semver(),
             fps: props_animation.fps,
             animations: props_animation
                 .animations
@@ -129,40 +133,22 @@ impl<'a> From<parser::Animation<'a>> for Animation {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::parser::tests::{anim, anim_header, anim_values, props_anim};
 
     #[test]
     fn it_works() {
-        let result = PropertiesAnimation::from_file("assets/single_anim.panim").unwrap();
-        assert_eq!(
-            result,
-            PropertiesAnimation {
-                fps: 20.0,
-                animations: vec![Animation {
-                    object_name: "Orange Side Streaks".to_string(),
-                    property_name: "opacity".to_string(),
-                    frame_start: 549,
-                    frame_end: 557,
-                    frame_values: vec![
-                        0.0, 0.04296834, 0.1562492, 0.31640565, 0.5, 0.6835944, 0.8437508,
-                        0.95703185, 1.0,
-                    ]
-                }],
-            }
-        );
+        let result = crate::PropertiesAnimation::from_file("assets/single_anim.panim").unwrap();
+        assert_eq!(result, props_anim!().into());
 
         let animation = &result.animations[0];
-        assert_eq!(animation.get_value_at_exact_frame(500), 0.0);
-        assert_eq!(animation.get_value_at_exact_frame(600), 1.0);
-        assert_eq!(animation.get_value_at_exact_frame(553), 0.5);
-        assert_eq!(
-            animation.get_interpolated_value_at_frame(549.5),
-            0.04296834 * 0.5
-        );
+        assert_eq!(animation.get_value_at_exact_frame(10), 0.0);
+        assert_eq!(animation.get_value_at_exact_frame(200), 1.0);
+        assert_eq!(animation.get_value_at_exact_frame(90), 0.5);
+        assert_eq!(animation.get_interpolated_value_at_frame(85.5), 0.18612504);
 
         assert_eq!(
-            result.get_animation_value_at_time(animation, 27.5),
-            0.04296834
+            result.get_animation_value_at_time(animation, 85.4 / 24.0),
+            0.18015012
         );
     }
 }
