@@ -4,8 +4,7 @@
 [![Docs](https://docs.rs/panim-loader/badge.svg)](https://docs.rs/panim-loader/)
 [![MIT/Apache 2.0](https://img.shields.io/badge/license-MIT%2FApache-blue.svg)](https://github.com/synphonyte/panim-loader#license)
 [![Build Status](https://github.com/synphonyte/panim-loader/actions/workflows/ci.yml/badge.svg)](https://github.com/synphonyte/panim-loader/actions/workflows/ci.yml)
-[![Coverage Status](https://coveralls.io/repos/github/synphonyte/panim-loader/badge.svg?branch=main)](https://coveralls.io/github/synphonyte/panim-loader?branch=main)
-
+[![Coverage Status](https://coveralls.io/repos/github/Synphonyte/panim-loader/badge.svg?branch=refs/tags/v0.2.3)](https://coveralls.io/github/Synphonyte/panim-loader?branch=refs/tags/v0.2.3)
 <!-- cargo-rdme start -->
 
 This is a loader for the PANIM format, which is a simple animation format for custom properties in Blender.
