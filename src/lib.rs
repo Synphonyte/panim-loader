@@ -33,6 +33,9 @@ pub struct PropertiesAnimation {
 /// An animation for a single property of a single object.
 #[derive(Clone, Debug, PartialEq)]
 pub struct Animation {
+    /// The number of frames per second. Same as [PropertiesAnimation::fps]
+    pub fps: f32,
+
     /// The unique name of the object.
     pub object_name: String,
 
@@ -64,14 +67,15 @@ impl PropertiesAnimation {
         let bytes = std::fs::read(path)?;
         Self::from_bytes(&bytes)
     }
-
-    /// Returns the value of the animation at the given time (in seconds).
-    pub fn get_animation_value_at_time(&self, animation: &Animation, elapsed_time: f32) -> f32 {
-        animation.get_interpolated_value_at_frame(self.fps * elapsed_time)
-    }
 }
 
 impl Animation {
+    /// Returns the value of the animation at the given time (in seconds).
+    #[inline]
+    pub fn get_animation_value_at_time(&self, elapsed_time: f32) -> f32 {
+        self.get_interpolated_value_at_frame(self.fps * elapsed_time)
+    }
+
     /// Returns the value of the animation at the given frame.
     /// If a frame is before the start of the animation, the first value is returned.
     /// If a frame is after the end of the animation, the last value is returned.
@@ -113,7 +117,11 @@ impl<'a> From<parser::PropsAnimation<'a>> for PropertiesAnimation {
             animations: props_animation
                 .animations
                 .into_iter()
-                .map(|animation| animation.into())
+                .map(|animation| {
+                    let mut anim: Animation = animation.into();
+                    anim.fps = props_animation.fps;
+                    anim
+                })
                 .collect(),
         }
     }
@@ -122,6 +130,7 @@ impl<'a> From<parser::PropsAnimation<'a>> for PropertiesAnimation {
 impl<'a> From<parser::Animation<'a>> for Animation {
     fn from(animation: parser::Animation<'a>) -> Self {
         Animation {
+            fps: 0.0,
             object_name: animation.header.object_name.to_string(),
             property_name: animation.header.property_name.to_string(),
             frame_start: animation.header.frame_start,
@@ -133,12 +142,14 @@ impl<'a> From<parser::Animation<'a>> for Animation {
 
 #[cfg(test)]
 mod tests {
-    use crate::parser::tests::{anim, anim_header, anim_values, props_anim};
+    use crate::parser::tests::{
+        first_anim, first_anim_header, first_anim_values, single_props_anim,
+    };
 
     #[test]
     fn it_works() {
         let result = crate::PropertiesAnimation::from_file("assets/single_anim.panim").unwrap();
-        assert_eq!(result, props_anim!().into());
+        assert_eq!(result, single_props_anim!().into());
 
         let animation = &result.animations[0];
         assert_eq!(animation.get_value_at_exact_frame(10), 0.0);
@@ -147,7 +158,7 @@ mod tests {
         assert_eq!(animation.get_interpolated_value_at_frame(85.5), 0.18612504);
 
         assert_eq!(
-            result.get_animation_value_at_time(animation, 85.4 / 24.0),
+            animation.get_animation_value_at_time(85.4 / 24.0),
             0.18015012
         );
     }

@@ -101,8 +101,9 @@ pub fn zero_term_str(input: &[u8]) -> IResult<&[u8], &str> {
 #[cfg(test)]
 pub(crate) mod tests {
     const single_anim: &[u8] = include_bytes!("../assets/single_anim.panim");
+    const multi_anim: &[u8] = include_bytes!("../assets/multi_anim.panim");
 
-    macro_rules! anim_values {
+    macro_rules! first_anim_values {
         () => {
             crate::parser::AnimationValues(vec![
                 0.0,
@@ -130,7 +131,7 @@ pub(crate) mod tests {
         };
     }
 
-    macro_rules! anim_header {
+    macro_rules! first_anim_header {
         () => {
             crate::parser::AnimationHeader {
                 object_name: "Cube",
@@ -142,63 +143,113 @@ pub(crate) mod tests {
         };
     }
 
-    macro_rules! anim {
+    macro_rules! first_anim {
         () => {
             crate::parser::Animation {
-                header: anim_header!(),
-                values: anim_values!(),
+                header: first_anim_header!(),
+                values: first_anim_values!(),
             }
         };
     }
 
-    macro_rules! props_anim {
+    macro_rules! single_props_anim {
         () => {
             crate::parser::PropsAnimation {
                 version: 2048,
                 fps: 24.0,
-                animations: vec![anim!()],
+                animations: vec![first_anim!()],
             }
         };
     }
 
-    pub(crate) use anim;
-    pub(crate) use anim_header;
-    pub(crate) use anim_values;
-    pub(crate) use props_anim;
+    pub(crate) use first_anim;
+    pub(crate) use first_anim_header;
+    pub(crate) use first_anim_values;
+    pub(crate) use single_props_anim;
 
     #[test]
-    fn test_props_animation() {
-        let output = crate::parser::props_animation(single_anim).unwrap();
-        assert_eq!(output, props_anim!());
+    fn test_multi_props_animation() {
+        let output = crate::parser::props_animation(multi_anim).unwrap();
+        assert_eq!(
+            output,
+            crate::parser::PropsAnimation {
+                version: 2048,
+                fps: 24.0,
+                animations: vec![
+                    first_anim!(),
+                    crate::parser::Animation {
+                        header: crate::parser::AnimationHeader {
+                            object_name: "Cube",
+                            property_name: "other",
+                            frame_start: 100,
+                            frame_end: 105,
+                            typ: 0,
+                        },
+                        values: crate::parser::AnimationValues(vec![
+                            1.0, 1.8320012, 3.8160005, 6.183999, 8.167998, 9.0
+                        ])
+                    },
+                    crate::parser::Animation {
+                        header: crate::parser::AnimationHeader {
+                            object_name: "Empty",
+                            property_name: "bla",
+                            frame_start: 20,
+                            frame_end: 30,
+                            typ: 0,
+                        },
+                        values: crate::parser::AnimationValues(vec![
+                            1.0,
+                            0.972,
+                            0.89599997,
+                            0.78400004,
+                            0.648,
+                            0.5,
+                            0.352,
+                            0.21600008,
+                            0.10399997,
+                            0.027999878,
+                            0.0
+                        ]),
+                    },
+                ],
+            }
+        );
     }
 
     #[test]
-    fn test_animation() {
+    fn test_single_props_animation() {
+        let output = crate::parser::props_animation(single_anim).unwrap();
+        assert_eq!(output, single_props_anim!());
+    }
+
+    #[test]
+    fn test_first_animation() {
         let input = &single_anim[8..];
         let (remainder, output) = crate::parser::animation(input).unwrap();
-        assert_eq!(output, anim!());
+        assert_eq!(output, first_anim!());
         assert_eq!(remainder, &[]);
     }
 
     #[test]
-    fn test_animation_header() {
+    fn test_first_animation_header() {
         let input = &single_anim[8..62];
         let (remainder, output) = crate::parser::animation_header(input).unwrap();
-        assert_eq!(output, anim_header!());
+        assert_eq!(output, first_anim_header!());
         assert_eq!(remainder, &[]);
     }
 
     #[test]
-    fn test_animation_values() {
+    fn test_first_animation_values() {
         let input = &single_anim[62..];
-        let (remainder, output) = crate::parser::animation_values(&anim_header!(), input).unwrap();
-        assert_eq!(output, anim_values!());
+        let (remainder, output) =
+            crate::parser::animation_values(&first_anim_header!(), input).unwrap();
+        assert_eq!(output, first_anim_values!());
         assert_eq!(remainder, &[]);
     }
 
     #[test]
     fn test_semver() {
-        let input = props_anim!();
+        let input = single_props_anim!();
         let output = input.semver();
         assert_eq!(output, (0, 2, 0));
     }
