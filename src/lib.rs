@@ -11,7 +11,7 @@
 //! use panim_loader::PropertiesAnimation;
 //!
 //! let anims = PropertiesAnimation::from_file("assets/single_anim.panim").unwrap();
-//! let value = anims.get_animation_value_at_time(&anims.animations[0], 10.0);
+//! let value = &anims.animations[0].get_animation_value_at_time(10.0);
 //! ```
 
 pub mod errors;
